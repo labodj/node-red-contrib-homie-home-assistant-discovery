@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-homie-home-assistant-discovery",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "Node-RED node that converts Homie MQTT devices into Home Assistant MQTT discovery.",
   "main": "dist/homie-ha-discovery.js",
   "scripts": {
@@ -74,7 +74,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "homie-home-assistant-discovery": "0.3.0"
+    "homie-home-assistant-discovery": "1.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
