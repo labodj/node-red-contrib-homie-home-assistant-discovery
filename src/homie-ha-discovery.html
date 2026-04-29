@@ -1,0 +1,395 @@
+<script type="text/javascript">
+  (function () {
+    function validateRequiredTrimmed(value) {
+      return String(value || "").trim().length > 0;
+    }
+
+    function validateTopicPrefix(value) {
+      const normalized = String(value || "").trim();
+      if (!normalized || normalized.includes("+") || normalized.includes("#")) return false;
+      if (normalized.startsWith("/") || normalized.endsWith("/")) return false;
+      return !normalized.split("/").some((segment) => segment.length === 0);
+    }
+
+    function validateOverridesJson(value) {
+      const normalized = String(value || "").trim();
+      if (!normalized) return true;
+      try {
+        JSON.parse(normalized);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function updateVersionWarning() {
+      const hasVersion =
+        $("#node-input-enableV3").is(":checked") ||
+        $("#node-input-enableV4").is(":checked") ||
+        $("#node-input-enableV5").is(":checked");
+      $("#node-input-version-warning").toggle(!hasVersion);
+    }
+
+    RED.nodes.registerType("homie-ha-discovery", {
+      category: "home automation",
+      color: "#d8bfd8",
+      defaults: {
+        name: { value: "" },
+        discoveryPrefix: {
+          value: "homeassistant",
+          required: true,
+          validate: validateTopicPrefix,
+        },
+        idPrefix: { value: "homie", required: true, validate: validateRequiredTrimmed },
+        homieDomain: { value: "homie", required: true, validate: validateTopicPrefix },
+        legacyRoot: { value: "homie", required: true, validate: validateTopicPrefix },
+        enableV3: { value: true },
+        enableV4: { value: true },
+        enableV5: { value: true },
+        emitSubscriptions: { value: true },
+        includeStateSensor: { value: true },
+        includeAttributeDiagnostics: { value: true },
+        defaultCommandableBooleanPlatform: { value: "auto" },
+        manufacturer: { value: "Homie", required: true, validate: validateRequiredTrimmed },
+        model: { value: "Homie MQTT Device", required: true, validate: validateRequiredTrimmed },
+        overridesJson: { value: "", validate: validateOverridesJson },
+      },
+      inputs: 1,
+      outputs: 4,
+      outputLabels: ["discovery", "diagnostics", "debug", "subscriptions"],
+      icon: "font-awesome/fa-sitemap",
+      label: function () {
+        return this.name || "homie-ha-discovery";
+      },
+      oneditprepare: function () {
+        $("#node-input-enableV3,#node-input-enableV4,#node-input-enableV5").on(
+          "change",
+          updateVersionWarning,
+        );
+        updateVersionWarning();
+      },
+    });
+  })();
+</script>
+
+<script type="text/html" data-template-name="homie-ha-discovery">
+  <style>
+    .homie-ha-group {
+      margin: 10px 0;
+      border-top: 1px solid var(--red-ui-secondary-border-color, #ddd);
+    }
+
+    .homie-ha-group summary {
+      cursor: pointer;
+      padding: 10px 0 6px;
+      font-weight: 600;
+    }
+
+    .homie-ha-group[open] summary {
+      margin-bottom: 4px;
+    }
+
+    .homie-ha-inline-options label {
+      width: auto;
+      margin-right: 12px;
+    }
+
+    .homie-ha-overrides {
+      width: 70%;
+      min-height: 160px;
+      font-family: monospace;
+    }
+
+    .homie-ha-wide-field {
+      width: 70%;
+    }
+
+    .homie-ha-warning {
+      display: none;
+      width: 70%;
+      margin-left: 105px;
+      color: var(--red-ui-text-color-error, #ad1625);
+    }
+  </style>
+
+  <details class="homie-ha-group" open>
+    <summary>Basic setup</summary>
+
+    <div class="form-row">
+      <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+      <input type="text" id="node-input-name" placeholder="Name" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-discoveryPrefix"><i class="fa fa-home"></i> HA prefix</label>
+      <input type="text" id="node-input-discoveryPrefix" placeholder="homeassistant" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-homieDomain"><i class="fa fa-sitemap"></i> Homie v5</label>
+      <input type="text" id="node-input-homieDomain" placeholder="homie" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-legacyRoot"><i class="fa fa-sitemap"></i> Homie v3/v4</label>
+      <input type="text" id="node-input-legacyRoot" placeholder="homie" />
+    </div>
+
+    <div class="form-row homie-ha-inline-options">
+      <label><i class="fa fa-code-fork"></i> Versions</label>
+      <label> <input type="checkbox" id="node-input-enableV3" style="width: auto" /> v3 </label>
+      <label> <input type="checkbox" id="node-input-enableV4" style="width: auto" /> v4 </label>
+      <label> <input type="checkbox" id="node-input-enableV5" style="width: auto" /> v5 </label>
+    </div>
+    <div id="node-input-version-warning" class="homie-ha-warning">
+      Enable at least one Homie version.
+    </div>
+
+    <div class="form-row homie-ha-inline-options">
+      <label><i class="fa fa-random"></i> Subscriptions</label>
+      <label>
+        <input type="checkbox" id="node-input-emitSubscriptions" style="width: auto" />
+        emit subscriptions
+      </label>
+    </div>
+  </details>
+
+  <details class="homie-ha-group">
+    <summary>Home Assistant identity</summary>
+
+    <div class="form-row">
+      <label for="node-input-idPrefix"><i class="fa fa-id-badge"></i> ID prefix</label>
+      <input type="text" id="node-input-idPrefix" placeholder="homie" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-manufacturer"><i class="fa fa-industry"></i> Manufacturer</label>
+      <input type="text" id="node-input-manufacturer" placeholder="Homie" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-model"><i class="fa fa-microchip"></i> Model</label>
+      <input type="text" id="node-input-model" placeholder="Homie MQTT Device" />
+    </div>
+
+    <div class="form-row homie-ha-inline-options">
+      <label><i class="fa fa-heartbeat"></i> Diagnostics</label>
+      <label>
+        <input type="checkbox" id="node-input-includeStateSensor" style="width: auto" />
+        state sensor
+      </label>
+      <label>
+        <input type="checkbox" id="node-input-includeAttributeDiagnostics" style="width: auto" />
+        attribute diagnostics
+      </label>
+    </div>
+  </details>
+
+  <details class="homie-ha-group">
+    <summary>Entity mapping</summary>
+
+    <div class="form-row">
+      <label for="node-input-defaultCommandableBooleanPlatform">
+        <i class="fa fa-sliders"></i> Boolean mapping
+      </label>
+      <select id="node-input-defaultCommandableBooleanPlatform" class="homie-ha-wide-field">
+        <option value="auto">Auto (recommended)</option>
+        <option value="switch">Switch</option>
+        <option value="light">Light</option>
+        <option value="fan">Fan</option>
+      </select>
+    </div>
+    <div class="form-tips">
+      Used only for Homie <code>boolean</code> properties with <code>settable=true</code> when no
+      mapping rule or exact property override applies. Non-settable booleans are always discovered
+      as <code>binary_sensor</code>.
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-overridesJson"><i class="fa fa-code"></i> Overrides</label>
+      <textarea
+        id="node-input-overridesJson"
+        class="homie-ha-overrides"
+        rows="8"
+        placeholder='{"devices":{"homie/5/kitchen":{"name":"Kitchen Board"}}}'
+      ></textarea>
+    </div>
+  </details>
+</script>
+
+<script type="text/html" data-help-name="homie-ha-discovery">
+  <p>
+    Converts Homie MQTT discovery metadata into retained Home Assistant MQTT discovery messages.
+  </p>
+  <p>
+    Use it between a normal MQTT input node and a normal MQTT output node. It does not connect to
+    MQTT by itself.
+  </p>
+  <h3>Wiring</h3>
+  <ol>
+    <li>Wire an MQTT input node to this node input.</li>
+    <li>Wire output 1 to an MQTT output node that publishes to the same broker.</li>
+    <li>
+      Optional but recommended: wire output 4 back to the MQTT input node to let this node manage
+      the Homie subscriptions.
+    </li>
+  </ol>
+  <p>
+    If you do not use output 4, subscribe the MQTT input node manually. The broad manual
+    subscription is <code>homie/#</code>, or your own Homie root.
+  </p>
+  <h3>Input</h3>
+  <dl class="message-properties">
+    <dt>topic <span class="property-type">string</span></dt>
+    <dd>Homie metadata topic, for example <code>homie/5/kitchen/$description</code>.</dd>
+    <dt>payload <span class="property-type">string | buffer | object | number | boolean</span></dt>
+    <dd>
+      Homie metadata payload. MQTT input nodes configured as <code>auto-detect</code> are supported.
+    </dd>
+    <dt class="optional">retain <span class="property-type">boolean</span></dt>
+    <dd>Used to detect retained metadata cleanup messages.</dd>
+  </dl>
+  <h3>Outputs</h3>
+  <ol>
+    <li>
+      Home Assistant discovery MQTT messages with <code>topic</code>, <code>payload</code>,
+      <code>qos</code> and <code>retain</code>.
+    </li>
+    <li>Diagnostics with warnings and logs.</li>
+    <li>Original input message passthrough.</li>
+    <li>MQTT subscription control messages for Node-RED's MQTT input node.</li>
+  </ol>
+  <h3>Homie Versions</h3>
+  <p>
+    Homie v5 uses retained <code>$description</code> documents. Homie v3/v4 use retained topic
+    metadata collected from the configured legacy root. At least one Homie version must be enabled.
+  </p>
+  <p>
+    When <b>attribute diagnostics</b> is enabled, observed Homie v5 attribute topics such as
+    <code>$fw/version</code>, <code>$stats/uptime</code> or extension topics under
+    <code>$implementation/...</code> are exposed as diagnostic entities. The mapper infers only
+    conservative metadata from the topic path and payload; use overrides for exact units, icons,
+    device classes or state classes. Operational attributes such as <code>$state</code>,
+    <code>$description</code>, <code>$log</code> and <code>$alert</code> are not emitted as
+    entities.
+  </p>
+  <h3>Entity Mapping</h3>
+  <p>
+    The automatic mapper is conservative: it creates Home Assistant entities that can be described
+    safely from Homie datatype, format, unit, settable and retained metadata.
+  </p>
+  <table class="node-help">
+    <thead>
+      <tr>
+        <th>Homie property</th>
+        <th>Home Assistant entity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>non-settable <code>boolean</code></td>
+        <td><code>binary_sensor</code></td>
+      </tr>
+      <tr>
+        <td>settable <code>boolean</code></td>
+        <td>
+          semantic auto mapping, configured fallback or override rule: <code>switch</code>,
+          <code>light</code> or <code>fan</code>
+        </td>
+      </tr>
+      <tr>
+        <td>settable <code>integer</code> or <code>float</code></td>
+        <td><code>number</code></td>
+      </tr>
+      <tr>
+        <td>settable <code>enum</code> with options</td>
+        <td><code>select</code></td>
+      </tr>
+      <tr>
+        <td>settable <code>enum</code> without options</td>
+        <td><code>text</code></td>
+      </tr>
+      <tr>
+        <td>
+          settable <code>string</code>, <code>color</code>, <code>datetime</code>,
+          <code>duration</code>, <code>json</code>
+        </td>
+        <td><code>text</code></td>
+      </tr>
+      <tr>
+        <td>
+          non-settable <code>integer</code>, <code>float</code>, <code>string</code>,
+          <code>enum</code>, <code>color</code>
+        </td>
+        <td><code>sensor</code></td>
+      </tr>
+      <tr>
+        <td>non-settable <code>datetime</code> or <code>duration</code></td>
+        <td><code>sensor</code> with timestamp/duration metadata</td>
+      </tr>
+      <tr>
+        <td>non-settable <code>json</code></td>
+        <td><code>sensor</code> with JSON attributes</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Homie v3/v4 define <code>integer</code>, <code>float</code>, <code>boolean</code>,
+    <code>string</code>, <code>enum</code> and <code>color</code>. Homie v5 also defines
+    <code>datetime</code>, <code>duration</code> and <code>json</code>. Homie v3 properties without
+    <code>$datatype</code> are treated as <code>string</code>; v4/v5 properties need a datatype
+    before discovery can be generated.
+  </p>
+  <p>
+    Homie does not encode enough semantics to safely infer every specialized Home Assistant domain.
+    For example, a boolean can be a relay, a light, a fan, a lock bit or an alarm flag. The default
+    automatic boolean mapping uses Homie <code>type</code> and <code>name</code> metadata for common
+    lights and fans, then falls back to <code>switch</code>; JSON mapping rules and exact overrides
+    handle site-specific devices.
+  </p>
+  <h3>Boolean Mapping</h3>
+  <p>
+    <b>Boolean mapping</b> is not an on/off toggle. <code>Auto</code> maps common Homie
+    <code>light</code> and <code>fan</code> names/types to matching Home Assistant platforms and
+    uses <code>switch</code> when the metadata is generic. Select <code>switch</code>,
+    <code>light</code> or <code>fan</code> to force that fallback globally.
+  </p>
+  <h3>Overrides</h3>
+  <p>
+    The overrides field accepts JSON for ordered mapping rules and exact device, node and property
+    overrides. Use <code>deviceDefaults</code> and templates such as <code>{deviceId}</code> and
+    <code>{nodeId}</code> when many devices share the same naming convention; use
+    <code>namedNodeState</code> and <code>nodeNames</code> when Homie ids are numeric but Home
+    Assistant should show friendly names. Advanced Home Assistant MQTT discovery fields can be added
+    with an <code>ha</code> object; mapper-managed identity and routing keys are rejected there.
+    Invalid JSON or unsupported override fields stop node initialization with a configuration error.
+  </p>
+  <pre><code>{
+  "deviceDefaults": {
+    "objectId": "acme_{deviceId}",
+    "identifiers": ["ACME_{deviceId}"]
+  },
+  "namedNodeState": {
+    "platform": "light",
+    "objectId": "acme_{deviceId}_{nodeId}"
+  },
+  "devices": {
+    "homie/5/kitchen": {
+      "nodeNames": {
+        "relay": "Kitchen Ceiling",
+        "fan": {
+          "name": "Extractor Fan",
+          "platform": "fan"
+        }
+      }
+    }
+  }
+}</code></pre>
+  <h3>Coverage</h3>
+  <p>
+    The node covers valid Homie v3.0.1, v4.0.0 and v5.x metadata and maps every supported Homie
+    datatype to a safe Home Assistant MQTT entity. It intentionally does not guess complex Home
+    Assistant domains such as climate, cover, lock, vacuum, alarm panel or water heater from generic
+    Homie metadata alone.
+  </p>
+</script>

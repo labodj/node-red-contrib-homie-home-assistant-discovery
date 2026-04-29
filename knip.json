@@ -1,0 +1,5 @@
+{
+  "entry": ["src/homie-ha-discovery.ts"],
+  "project": ["src/**/*.ts"],
+  "ignore": ["dist/**", "coverage/**"]
+}

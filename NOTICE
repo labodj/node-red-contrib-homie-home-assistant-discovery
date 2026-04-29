@@ -1,0 +1,13 @@
+Node-RED Homie Home Assistant Discovery Attribution Notice
+
+This repository is an original component by Jacopo Labardi.
+
+Some adapter, validation and Home Assistant discovery publication patterns are
+adapted from node-red-contrib-lsh-logic:
+https://github.com/labodj/node-red-contrib-lsh-logic
+
+This package depends on the standalone homie-home-assistant-discovery core package:
+https://github.com/labodj/homie-home-assistant-discovery
+
+This NOTICE file is provided for attribution purposes only and does not modify
+the terms of the Apache License, Version 2.0.

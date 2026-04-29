@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use or reference node-red-contrib-homie-home-assistant-discovery, please cite it using the metadata below."
+title: "node-red-contrib-homie-home-assistant-discovery"
+type: software
+authors:
+  - family-names: "Labardi"
+    given-names: "Jacopo"
+repository-code: "https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery"
+url: "https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery"
+license: "Apache-2.0"
+abstract: "Node-RED node that bridges Homie MQTT discovery metadata to Home Assistant MQTT discovery."
+keywords:
+  - node-red
+  - mqtt
+  - homie
+  - home-assistant
+  - discovery
