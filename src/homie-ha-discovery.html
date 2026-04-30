@@ -211,19 +211,18 @@
         id="node-input-overridesJson"
         class="homie-ha-overrides"
         rows="8"
-        placeholder='{"devices":{"homie/5/kitchen":{"name":"Kitchen Board"}}}'
+        placeholder='{"devices":{"homie/5/kitchen-board":{"name":"Kitchen board"}}}'
       ></textarea>
     </div>
   </details>
 </script>
 
 <script type="text/html" data-help-name="homie-ha-discovery">
+  <p>Converts Homie MQTT metadata into retained Home Assistant MQTT discovery messages.</p>
   <p>
-    Converts Homie MQTT discovery metadata into retained Home Assistant MQTT discovery messages.
-  </p>
-  <p>
-    Use it between a normal MQTT input node and a normal MQTT output node. It does not connect to
-    MQTT by itself.
+    Use it between Node-RED's normal MQTT input and MQTT output nodes. The MQTT broker, username,
+    password, TLS certificates and MQTT protocol version stay in the standard Node-RED MQTT broker
+    configuration. This node only maps Homie metadata to Home Assistant discovery.
   </p>
   <h3>Wiring</h3>
   <ol>
@@ -236,12 +235,12 @@
   </ol>
   <p>
     If you do not use output 4, subscribe the MQTT input node manually. The broad manual
-    subscription is <code>homie/#</code>, or your own Homie root.
+    subscription is usually <code>homie/#</code>, or the same shape under your own Homie root.
   </p>
   <h3>Input</h3>
   <dl class="message-properties">
     <dt>topic <span class="property-type">string</span></dt>
-    <dd>Homie metadata topic, for example <code>homie/5/kitchen/$description</code>.</dd>
+    <dd>Homie metadata topic, for example <code>homie/5/kitchen-board/$description</code>.</dd>
     <dt>payload <span class="property-type">string | buffer | object | number | boolean</span></dt>
     <dd>
       Homie metadata payload. MQTT input nodes configured as <code>auto-detect</code> are supported.
@@ -275,8 +274,9 @@
   </p>
   <h3>Entity Mapping</h3>
   <p>
-    The automatic mapper is conservative: it creates Home Assistant entities that can be described
-    safely from Homie datatype, format, unit, settable and retained metadata.
+    The automatic mapper starts from Homie metadata and chooses the safest Home Assistant platform.
+    It is intentionally conservative: a generic commandable boolean is a <code>switch</code> unless
+    names, types, rules or exact overrides say it is a <code>light</code> or <code>fan</code>.
   </p>
   <table class="node-help">
     <thead>
@@ -341,11 +341,10 @@
     before discovery can be generated.
   </p>
   <p>
-    Homie does not encode enough semantics to safely infer every specialized Home Assistant domain.
-    For example, a boolean can be a relay, a light, a fan, a lock bit or an alarm flag. The default
-    automatic boolean mapping uses Homie <code>type</code> and <code>name</code> metadata for common
-    lights and fans, then falls back to <code>switch</code>; JSON mapping rules and exact overrides
-    handle site-specific devices.
+    Homie does not encode enough semantics to safely infer every specialized Home Assistant domain:
+    a boolean can be a relay, a light, a fan, a lock bit or an alarm flag. Automatic mapping handles
+    the safe cases; overrides handle the meaning that only the installation or firmware convention
+    knows.
   </p>
   <h3>Boolean Mapping</h3>
   <p>
@@ -356,35 +355,40 @@
   </p>
   <h3>Overrides</h3>
   <p>
-    The overrides field accepts JSON for ordered mapping rules and exact device, node and property
-    overrides. Use <code>deviceDefaults</code> and templates such as <code>{deviceId}</code> and
-    <code>{nodeId}</code> when many devices share the same naming convention; use
-    <code>namedNodeState</code> and <code>nodeNames</code> when Homie ids are numeric but Home
-    Assistant should show friendly names. Advanced Home Assistant MQTT discovery fields can be added
-    with an <code>ha</code> object; mapper-managed identity and routing keys are rejected there.
-    Invalid JSON or unsupported override fields stop node initialization with a configuration error.
+    The overrides field accepts strict JSON. Start small: use <code>namedNodeState</code> when the
+    useful entity is a commandable boolean <code>node/state</code> property, then add
+    <code>nodeNames</code> for readable names and one-off exceptions. Use <code>rules</code> for
+    fleet-wide patterns and exact property overrides for entities that need full control. Advanced
+    Home Assistant MQTT discovery fields can be added with an <code>ha</code> object; mapper-managed
+    identity and routing keys are rejected there. Invalid JSON or unsupported fields stop node
+    initialization with a configuration error before retained discovery can be published.
   </p>
   <pre><code>{
   "deviceDefaults": {
-    "objectId": "acme_{deviceId}",
-    "identifiers": ["ACME_{deviceId}"]
+    "objectId": "home_{deviceId}",
+    "identifiers": ["homie:{baseTopic}"]
   },
   "namedNodeState": {
     "platform": "light",
-    "objectId": "acme_{deviceId}_{nodeId}"
+    "objectId": "home_{deviceId}_{nodeId}"
   },
   "devices": {
-    "homie/5/kitchen": {
+    "homie/5/kitchen-board": {
+      "name": "Kitchen board",
       "nodeNames": {
-        "relay": "Kitchen Ceiling",
-        "fan": {
-          "name": "Extractor Fan",
+        "ceiling": "Ceiling light",
+        "extractor": {
+          "name": "Extractor fan",
           "platform": "fan"
         }
       }
     }
   }
 }</code></pre>
+  <p>
+    JSON comments are not accepted by the editor, but the documentation includes commented
+    <code>jsonc</code> examples that explain each line before you paste the clean JSON here.
+  </p>
   <h3>Coverage</h3>
   <p>
     The node covers valid Homie v3.0.1, v4.0.0 and v5.x metadata and maps every supported Homie
