@@ -4,6 +4,8 @@
 [![Node-RED Library](https://img.shields.io/badge/Node--RED-Library-8f0000.svg)](https://flows.nodered.org/node/node-red-contrib-homie-home-assistant-discovery)
 [![npm downloads](https://img.shields.io/npm/dm/node-red-contrib-homie-home-assistant-discovery.svg)](https://www.npmjs.com/package/node-red-contrib-homie-home-assistant-discovery)
 [![CI](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/actions/workflows/ci.yaml)
+[![Node.js](https://img.shields.io/node/v/node-red-contrib-homie-home-assistant-discovery.svg)](https://www.npmjs.com/package/node-red-contrib-homie-home-assistant-discovery)
+[![Latest Release](https://img.shields.io/github/v/release/labodj/node-red-contrib-homie-home-assistant-discovery?display_name=tag&sort=semver)](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/releases/latest)
 [![License](https://img.shields.io/github/license/labodj/node-red-contrib-homie-home-assistant-discovery.svg)](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/blob/main/LICENSE)
 
 [![works with MQTT Homie](https://homieiot.github.io/img/works-with-homie.svg "works with MQTT Homie")](https://homieiot.github.io/)
