@@ -26,7 +26,7 @@ entities after a restart.
 
 ## Input Messages
 
-The input should look like a normal Node-RED MQTT message.
+Input messages should look like normal Node-RED MQTT messages.
 
 ```json
 {
@@ -98,7 +98,7 @@ disabled it uses narrower `$description` and `$state` filters.
 
 | Field                 | Default             | Meaning                                               |
 | --------------------- | ------------------- | ----------------------------------------------------- |
-| HA prefix             | `homeassistant`     | Home Assistant MQTT discovery prefix.                 |
+| Home Assistant prefix | `homeassistant`     | Home Assistant MQTT discovery prefix.                 |
 | ID prefix             | `homie`             | Prefix for generated discovery IDs and entity IDs.    |
 | Homie v5              | `homie`             | Homie v5 topic domain.                                |
 | Homie v3/v4           | `homie`             | Homie legacy topic root.                              |
@@ -138,7 +138,7 @@ Homie `light` and `fan` names/types to matching Home Assistant platforms and
 uses `switch` when metadata is generic. Select `switch`, `light` or `fan` to
 force that fallback globally.
 
-## Overrides Without the Wall of JSON
+## Overrides Without Too Much JSON
 
 Start from the shape that matches your device.
 
@@ -280,10 +280,11 @@ Core operational v5 attributes such as `$state`, `$description`, `$log` and
 
 ## Advanced Home Assistant Fields
 
-Advanced users can add an `ha` object with native Home Assistant MQTT discovery
-keys. Managed identity and routing keys such as `platform`, `unique_id`,
-`default_entity_id`, `object_id`, `state_topic` and `command_topic` are rejected
-there; use the typed override fields for those values.
+When you need a Home Assistant MQTT discovery field that is not exposed as a
+typed override, add it under `ha` with native Home Assistant keys. Managed
+identity and routing keys such as `platform`, `unique_id`, `default_entity_id`,
+`object_id`, `state_topic` and `command_topic` are rejected there; use the typed
+override fields for those values.
 
 The node does not infer Home Assistant domains that need semantics Homie core
 does not provide, such as `climate`, `cover`, `lock`, `vacuum`, alarm panels,

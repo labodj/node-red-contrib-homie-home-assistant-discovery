@@ -8,18 +8,18 @@
 
 [![works with MQTT Homie](https://homieiot.github.io/img/works-with-homie.svg "works with MQTT Homie")](https://homieiot.github.io/)
 
-A Node-RED node that turns Homie MQTT devices into Home Assistant MQTT discovery
-entities.
+Use this Node-RED node to turn Homie MQTT devices into Home Assistant MQTT
+discovery entities.
 
-The node is deliberately simple to wire: put it between the built-in `mqtt in`
+The node is designed to be simple to wire: put it between the built-in `mqtt in`
 and `mqtt out` nodes. It reads Homie metadata from MQTT, emits retained Home
 Assistant discovery messages, and can send subscription-control messages back to
 the same `mqtt in` node.
 
-It does not open its own broker connection. Node-RED already has excellent MQTT
-nodes with credentials, TLS, reconnect handling and broker configuration; this
-node focuses on Homie parsing, Home Assistant mapping, diagnostics and a clean
-editor experience.
+It does not open its own broker connection. Node-RED's MQTT nodes already handle
+credentials, TLS, reconnect behavior and broker configuration; this node focuses
+on Homie parsing, Home Assistant mapping, diagnostics and a clean editor
+experience.
 
 ![Node-RED Homie Home Assistant Discovery flow](https://raw.githubusercontent.com/labodj/node-red-contrib-homie-home-assistant-discovery/main/images/node-usage.png)
 
@@ -35,9 +35,9 @@ editor experience.
 6. Optional but recommended: wire output 4 back into the same `mqtt in` node so
    the discovery node can manage Homie subscriptions automatically.
 
-Output 4 is the bottom port on purpose. In a normal left-to-right flow, the
+Output 4 is the bottom port so that, in a normal left-to-right flow, the
 feedback wire can return to the MQTT input without crossing the discovery,
-diagnostic and debug wires.
+diagnostic or debug wires.
 
 ## Outputs
 
@@ -55,7 +55,7 @@ the `mqtt out` node can publish them directly.
 
 For most installations the defaults are enough:
 
-- **HA prefix**: `homeassistant`
+- **Home Assistant prefix**: `homeassistant`
 - **Homie v5**: `homie`
 - **Homie v3/v4**: `homie`
 - **Versions**: v3, v4 and v5 enabled
@@ -78,7 +78,7 @@ The mapper uses Homie metadata first:
 - read-only values become `sensor`;
 - Homie lifecycle and optional v5 attributes become diagnostic entities.
 
-The node is conservative. It will not guess `climate`, `cover`, `lock`,
+The node is conservative. It will not invent `climate`, `cover`, `lock`,
 `vacuum`, alarm panels or other complex Home Assistant domains from generic
 Homie metadata alone. Use overrides when you know the real device semantics.
 
@@ -162,10 +162,10 @@ configuration.
 
 ## Documentation
 
-- [Node-RED usage](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/blob/main/docs/USAGE.md)
-- [Entity mapping](https://github.com/labodj/homie-home-assistant-discovery/blob/main/docs/HOME_ASSISTANT_DISCOVERY.md)
-- [Discovery overrides](https://github.com/labodj/homie-home-assistant-discovery/blob/main/docs/OVERRIDES.md)
-- [Homie compatibility](https://github.com/labodj/homie-home-assistant-discovery/blob/main/docs/HOMIE_COMPATIBILITY.md)
+The full documentation map lives in
+[DOCS.md](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/blob/main/DOCS.md).
+Start there for Node-RED wiring, dynamic subscriptions, entity mapping,
+overrides and Homie compatibility.
 
 ## Core Package
 
