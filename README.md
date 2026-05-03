@@ -10,18 +10,17 @@
 
 [![works with MQTT Homie](https://homieiot.github.io/img/works-with-homie.svg "works with MQTT Homie")](https://homieiot.github.io/)
 
-Use this Node-RED node to turn Homie MQTT devices into Home Assistant MQTT
-discovery entities.
+Use this Node-RED node to publish Home Assistant MQTT discovery for Homie MQTT
+devices.
 
-The node is designed to be simple to wire: put it between the built-in `mqtt in`
-and `mqtt out` nodes. It reads Homie metadata from MQTT, emits retained Home
-Assistant discovery messages, and can send subscription-control messages back to
-the same `mqtt in` node.
+The node fits the normal Node-RED MQTT flow: put it between the built-in
+`mqtt in` and `mqtt out` nodes. It reads Homie metadata from MQTT, emits
+retained Home Assistant discovery messages, and can send subscription-control
+messages back to the same `mqtt in` node.
 
 It does not open its own broker connection. Node-RED's MQTT nodes already handle
 credentials, TLS, reconnect behavior and broker configuration; this node focuses
-on Homie parsing, Home Assistant mapping, diagnostics and a clean editor
-experience.
+on Homie parsing, Home Assistant mapping, diagnostics and editor configuration.
 
 ![Node-RED Homie Home Assistant Discovery flow](https://raw.githubusercontent.com/labodj/node-red-contrib-homie-home-assistant-discovery/main/images/node-usage.png)
 
@@ -34,8 +33,8 @@ experience.
 4. Wire `mqtt in` into `homie-ha-discovery`.
 5. Wire output 1 of `homie-ha-discovery` into an `mqtt out` node on the same
    broker.
-6. Optional but recommended: wire output 4 back into the same `mqtt in` node so
-   the discovery node can manage Homie subscriptions automatically.
+6. Optional: wire output 4 back into the same `mqtt in` node so the discovery
+   node can manage Homie subscriptions dynamically.
 
 Output 4 is the bottom port so that, in a normal left-to-right flow, the
 feedback wire can return to the MQTT input without crossing the discovery,
@@ -43,7 +42,7 @@ diagnostic or debug wires.
 
 ## Outputs
 
-| Output | Name          | What you usually connect it to                         |
+| Output | Name          | Connect it to                                          |
 | ------ | ------------- | ------------------------------------------------------ |
 | 1      | Discovery     | `mqtt out`, same broker, publishes retained discovery. |
 | 2      | Diagnostics   | `debug`, useful warnings and lifecycle logs.           |
@@ -55,7 +54,7 @@ the `mqtt out` node can publish them directly.
 
 ## Basic Configuration
 
-For most installations the defaults are enough:
+For most installations, start with the defaults:
 
 - **Home Assistant prefix**: `homeassistant`
 - **Homie v5**: `homie`
@@ -64,7 +63,7 @@ For most installations the defaults are enough:
 - **Subscriptions**: enabled
 - **Boolean mapping**: `Auto`
 
-Use `Auto` when you are not sure. It maps obvious lights and fans from Homie
+Use `Auto` unless you want to force one fallback. It maps clear light and fan
 names/types, then falls back to `switch` for generic commandable booleans.
 Read-only booleans are always `binary_sensor`.
 
@@ -80,25 +79,24 @@ The mapper uses Homie metadata first:
 - read-only values become `sensor`;
 - Homie lifecycle and optional v5 attributes become diagnostic entities.
 
-The node is conservative. It will not invent `climate`, `cover`, `lock`,
+The mapper is conservative. It will not invent `climate`, `cover`, `lock`,
 `vacuum`, alarm panels or other complex Home Assistant domains from generic
 Homie metadata alone. Use overrides when you know the real device semantics.
 
-## Friendly Overrides
+## Practical Overrides
 
-Start without overrides. Add them only when Home Assistant needs better names,
-stable historical IDs, a different platform for one property or advanced MQTT
+Start without overrides. Add them only when Home Assistant needs clearer names,
+stable historical IDs, a different platform for one property or additional MQTT
 discovery fields.
 
-The most common pattern is a device with many nodes, each exposing a boolean
-`state` property. This example maps named `state` entities to lights, except one
-fan:
+A common pattern is a device with many nodes, each exposing a boolean `state`
+property. This example maps named `state` entities to lights, except one fan:
 
 ```jsonc
 {
   // Shared identity for discovered Home Assistant devices.
   "deviceDefaults": {
-    // Generates predictable device discovery object ids.
+    // Generates predictable device discovery object IDs.
     "objectId": "home_{deviceId}",
 
     // Keeps the Home Assistant device identity stable.
@@ -128,8 +126,8 @@ fan:
 }
 ```
 
-The editor field accepts strict JSON, not JSON with comments. Use the commented
-example to understand the shape, then paste a comment-free version:
+The Overrides field accepts strict JSON, not JSON with comments. Use the
+commented example to understand the shape, then paste a comment-free version:
 
 ```json
 {
@@ -157,14 +155,13 @@ example to understand the shape, then paste a comment-free version:
 }
 ```
 
-Exact device, node and property overrides always win over generic rules. That
-lets you set a broad default for a whole fleet, then make one entity a fan,
-switch, renamed sensor or disabled diagnostic without fighting the global
-configuration.
+Exact device, node and property overrides take precedence over broad rules. That
+lets you set a shared default for a fleet, then make one entity a fan, switch,
+renamed sensor or disabled diagnostic without changing the shared configuration.
 
 ## Documentation
 
-The full documentation map lives in
+The full documentation map is in
 [DOCS.md](https://github.com/labodj/node-red-contrib-homie-home-assistant-discovery/blob/main/DOCS.md).
 Start there for Node-RED wiring, dynamic subscriptions, entity mapping,
 overrides and Homie compatibility.
@@ -173,8 +170,8 @@ overrides and Homie compatibility.
 
 This package wraps
 [`homie-home-assistant-discovery`](https://github.com/labodj/homie-home-assistant-discovery).
-The shared core owns Homie parsing and Home Assistant mapping. This Node-RED
-package owns the editor UI, runtime status, diagnostics and Node-RED message
+The shared core provides Homie parsing and Home Assistant mapping. This Node-RED
+package provides the editor UI, runtime status, diagnostics and Node-RED message
 wiring.
 
 ## Local Development

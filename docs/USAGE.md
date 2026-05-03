@@ -1,13 +1,12 @@
 # Node-RED Usage
 
-`node-red-contrib-homie-home-assistant-discovery` is the visual Node-RED wrapper
-around the `homie-home-assistant-discovery` core package.
+`node-red-contrib-homie-home-assistant-discovery` is the Node-RED wrapper around
+the `homie-home-assistant-discovery` core package.
 
 It receives MQTT messages from Node-RED's built-in `mqtt in` node and emits Home
 Assistant discovery messages for Node-RED's built-in `mqtt out` node. The broker
 connection, username, password, TLS certificates, MQTT v5 setting and reconnect
-behavior all stay where Node-RED users expect them: in the MQTT broker
-configuration node.
+behavior remain in the MQTT broker configuration node.
 
 ## Recommended Flow
 
@@ -20,13 +19,14 @@ Wire the flow like this:
 3. `homie-ha-discovery` output 4 -> the same `mqtt in` node, if you want dynamic
    subscriptions
 
-The `mqtt out` node should publish to the same broker Home Assistant reads from.
+The `mqtt out` node needs to publish to the same broker Home Assistant reads
+from.
 The generated discovery messages are retained, so Home Assistant can rediscover
 entities after a restart.
 
 ## Input Messages
 
-Input messages should look like normal Node-RED MQTT messages.
+Input messages use normal Node-RED MQTT message fields.
 
 ```json
 {
@@ -138,7 +138,7 @@ Homie `light` and `fan` names/types to matching Home Assistant platforms and
 uses `switch` when metadata is generic. Select `switch`, `light` or `fan` to
 force that fallback globally.
 
-## Overrides Without Too Much JSON
+## Practical Overrides
 
 Start from the shape that matches your device.
 
@@ -164,7 +164,7 @@ For a board where every useful entity is a node with a commandable boolean
 }
 ```
 
-For stable Home Assistant history, add object-id templates:
+For stable Home Assistant history, add object ID templates:
 
 ```json
 {
@@ -191,8 +191,8 @@ For stable Home Assistant history, add object-id templates:
 ```
 
 For pattern-based mapping, use ordered rules. Later matching rules override
-earlier matching rules, and exact device/node/property overrides win over all
-generic rules.
+earlier matching rules, and exact device/node/property overrides take precedence
+over all broad rules.
 
 ```json
 {
@@ -227,13 +227,13 @@ generic rules.
 ## Commented Override Example
 
 The Node-RED editor accepts strict JSON, so do not paste comments into the
-Overrides field. This commented `jsonc` block is only here to explain each line.
+Overrides field. This commented `jsonc` block is included to explain each line.
 
 ```jsonc
 {
   // Shared identity for all devices.
   "deviceDefaults": {
-    // Device discovery object id.
+    // Device discovery object ID.
     "objectId": "home_{deviceId}",
 
     // Home Assistant device identifier.
@@ -245,7 +245,7 @@ Overrides field. This commented `jsonc` block is only here to explain each line.
     // Most listed node/state entities are lights.
     "platform": "light",
 
-    // Entity object id template.
+    // Entity object ID template.
     "objectId": "home_{deviceId}_{nodeId}",
   },
 
@@ -278,7 +278,7 @@ matching. For example:
 Core operational v5 attributes such as `$state`, `$description`, `$log` and
 `$alert` are not emitted as diagnostic entities.
 
-## Advanced Home Assistant Fields
+## Additional Home Assistant Fields
 
 When you need a Home Assistant MQTT discovery field that is not exposed as a
 typed override, add it under `ha` with native Home Assistant keys. Managed
@@ -292,7 +292,7 @@ water heaters, valves or scenes.
 
 ## Diagnostics
 
-Warnings are emitted when input cannot be used safely, for example:
+Warnings are emitted when input cannot be used for discovery, for example:
 
 - missing MQTT topic;
 - payloads that cannot be converted to MQTT text;
@@ -310,7 +310,7 @@ npm run build
 npm run verify:package
 ```
 
-The verification script packs the companion core package and this Node-RED
+The verification script packs the shared core package and this Node-RED
 package, installs both tarballs into a temporary consumer project and checks
 that the runtime registration export and editor HTML are present. It never
 publishes to npm.

@@ -218,19 +218,19 @@
 </script>
 
 <script type="text/html" data-help-name="homie-ha-discovery">
-  <p>Converts Homie MQTT metadata into retained Home Assistant MQTT discovery messages.</p>
+  <p>Publishes retained Home Assistant MQTT discovery messages from Homie MQTT metadata.</p>
   <p>
     Use it between Node-RED's normal MQTT input and MQTT output nodes. The MQTT broker, username,
     password, TLS certificates and MQTT protocol version stay in the standard Node-RED MQTT broker
-    configuration. This node only maps Homie metadata to Home Assistant discovery.
+    configuration. This node maps Homie metadata to Home Assistant discovery.
   </p>
   <h3>Wiring</h3>
   <ol>
     <li>Wire an MQTT input node to this node input.</li>
     <li>Wire output 1 to an MQTT output node that publishes to the same broker.</li>
     <li>
-      Optional but recommended: wire output 4 back to the MQTT input node to let this node manage
-      the Homie subscriptions.
+      Optional: wire output 4 back to the MQTT input node to let this node manage the Homie
+      subscriptions dynamically.
     </li>
   </ol>
   <p>
@@ -264,7 +264,7 @@
     metadata collected from the configured legacy root. At least one Homie version must be enabled.
   </p>
   <p>
-    When <b>attribute diagnostics</b> is enabled, observed Homie v5 attribute topics such as
+    When <b>attribute diagnostics</b> are enabled, observed Homie v5 attribute topics such as
     <code>$fw/version</code>, <code>$stats/uptime</code> or extension topics under
     <code>$implementation/...</code> are exposed as diagnostic entities. The mapper infers only
     conservative metadata from the topic path and payload; use overrides for exact units, icons,
@@ -274,9 +274,9 @@
   </p>
   <h3>Entity Mapping</h3>
   <p>
-    The automatic mapper starts from Homie metadata and chooses the safest Home Assistant platform.
-    It is intentionally conservative: a generic commandable boolean is a <code>switch</code> unless
-    names, types, rules or exact overrides say it is a <code>light</code> or <code>fan</code>.
+    The automatic mapper starts from Homie metadata and chooses the most conservative supported Home
+    Assistant platform. A generic commandable boolean is a <code>switch</code> unless names, types,
+    rules or exact overrides say it is a <code>light</code> or <code>fan</code>.
   </p>
   <table class="node-help">
     <thead>
@@ -343,8 +343,8 @@
   <p>
     Homie does not encode enough semantics to safely infer every specialized Home Assistant domain:
     a boolean can be a relay, a light, a fan, a lock bit or an alarm flag. Automatic mapping handles
-    the safe cases; overrides handle the meaning that only the installation or firmware convention
-    knows.
+    cases the mapper can identify conservatively; overrides handle the meaning that only the
+    installation or firmware convention knows.
   </p>
   <h3>Boolean Mapping</h3>
   <p>
@@ -358,10 +358,10 @@
     The overrides field accepts strict JSON. Start small: use <code>namedNodeState</code> when the
     useful entity is a commandable boolean <code>node/state</code> property, then add
     <code>nodeNames</code> for readable names and one-off exceptions. Use <code>rules</code> for
-    fleet-wide patterns and exact property overrides for entities that need full control. Advanced
-    Home Assistant MQTT discovery fields can be added with an <code>ha</code> object; mapper-managed
-    identity and routing keys are rejected there. Invalid JSON or unsupported fields stop node
-    initialization with a configuration error before retained discovery can be published.
+    fleet-wide patterns and exact property overrides for entities that need exact configuration.
+    Additional Home Assistant MQTT discovery fields can be added with an <code>ha</code> object;
+    mapper-managed identity and routing keys are rejected there. Invalid JSON or unsupported fields
+    stop node initialization with a configuration error before retained discovery can be published.
   </p>
   <pre><code>{
   "deviceDefaults": {
@@ -391,9 +391,9 @@
   </p>
   <h3>Coverage</h3>
   <p>
-    The node covers valid Homie v3.0.1, v4.0.0 and v5.x metadata and maps every supported Homie
-    datatype to a safe Home Assistant MQTT entity. It intentionally does not guess complex Home
-    Assistant domains such as climate, cover, lock, vacuum, alarm panel or water heater from generic
-    Homie metadata alone.
+    The node supports valid Homie v3.0.1, v4.0.0 and v5.x metadata and maps each supported Homie
+    datatype to a Home Assistant MQTT entity. It intentionally does not guess complex Home Assistant
+    domains such as climate, cover, lock, vacuum, alarm panel or water heater from generic Homie
+    metadata alone.
   </p>
 </script>
