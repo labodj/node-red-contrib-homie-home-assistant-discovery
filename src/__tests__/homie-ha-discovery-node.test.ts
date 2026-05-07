@@ -14,6 +14,7 @@ class FakeNode {
   public sent: unknown[] = [];
   public warnings: string[] = [];
   public logs: string[] = [];
+  public debugMessages: string[] = [];
   public errors: string[] = [];
   public statuses: unknown[] = [];
   private inputListener: InputListener | null = null;
@@ -39,6 +40,10 @@ class FakeNode {
 
   public log(message: string): void {
     this.logs.push(message);
+  }
+
+  public debug(message: string): void {
+    this.debugMessages.push(message);
   }
 
   public error(message: string): void {
@@ -204,6 +209,8 @@ describe("HomieHaDiscoveryNode runtime", () => {
         logs: ["Generated Home Assistant discovery for 'kitchen'."],
       },
     });
+    expect(node.logs).toEqual([]);
+    expect(node.debugMessages).toEqual(["Generated Home Assistant discovery for 'kitchen'."]);
     expect(output[Output.Debug]).toEqual(
       expect.objectContaining({
         topic: "homie/5/kitchen/$description",

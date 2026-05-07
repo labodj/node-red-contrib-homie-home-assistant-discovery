@@ -130,7 +130,7 @@ export class HomieHaDiscoveryNode {
       this.node.warn(warning);
     }
     for (const log of result.logs) {
-      this.node.log(log);
+      this.node.debug(log);
     }
 
     const output: OutputMessages = {};
@@ -182,7 +182,7 @@ export class HomieHaDiscoveryNode {
     if (level === "warning") {
       this.node.warn(message);
     } else {
-      this.node.log(message);
+      this.node.debug(message);
     }
 
     this.send({
