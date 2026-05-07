@@ -105,6 +105,8 @@ const buildDescription = (): string =>
     },
   });
 
+const getLatestOutput = (node: FakeNode): unknown[] => node.sent.at(-1) as unknown[];
+
 describe("HomieHaDiscoveryNode runtime", () => {
   it("registers with Node-RED and reports invalid editor configuration", () => {
     const registerNode: (red: unknown) => void = jest.requireActual("../homie-ha-discovery");
@@ -192,8 +194,25 @@ describe("HomieHaDiscoveryNode runtime", () => {
     });
 
     expect(error).toBeUndefined();
-    const output = node.sent.at(-1) as unknown[];
-    expect(output[Output.Discovery]).toEqual([
+    const diagnosticsOutput = getLatestOutput(node);
+    expect(diagnosticsOutput[Output.Discovery]).toBeNull();
+    expect(diagnosticsOutput[Output.Diagnostics]).toEqual({
+      payload: {
+        warnings: [],
+        logs: ["Generated Home Assistant discovery for 'kitchen'."],
+      },
+    });
+    expect(node.logs).toEqual([]);
+    expect(node.debugMessages).toEqual(["Generated Home Assistant discovery for 'kitchen'."]);
+    expect(diagnosticsOutput[Output.Debug]).toEqual(
+      expect.objectContaining({
+        topic: "homie/5/kitchen/$description",
+      }),
+    );
+
+    node.emitClose();
+    const discoveryOutput = getLatestOutput(node);
+    expect(discoveryOutput[Output.Discovery]).toEqual([
       expect.objectContaining({
         topic: "homeassistant/device/homie_homie_5_kitchen/config",
         retain: true,
@@ -203,19 +222,6 @@ describe("HomieHaDiscoveryNode runtime", () => {
         retain: true,
       }),
     ]);
-    expect(output[Output.Diagnostics]).toEqual({
-      payload: {
-        warnings: [],
-        logs: ["Generated Home Assistant discovery for 'kitchen'."],
-      },
-    });
-    expect(node.logs).toEqual([]);
-    expect(node.debugMessages).toEqual(["Generated Home Assistant discovery for 'kitchen'."]);
-    expect(output[Output.Debug]).toEqual(
-      expect.objectContaining({
-        topic: "homie/5/kitchen/$description",
-      }),
-    );
     expect(node.statuses.at(-1)).toEqual({ fill: "green", shape: "dot", text: "published 2" });
   });
 
@@ -230,7 +236,8 @@ describe("HomieHaDiscoveryNode runtime", () => {
     });
 
     expect(error).toBeUndefined();
-    const output = node.sent.at(-1) as unknown[];
+    node.emitClose();
+    const output = getLatestOutput(node);
     expect(output[Output.Discovery]).toEqual([
       expect.objectContaining({
         topic: "homeassistant/device/homie_homie_5_kitchen/config",
@@ -326,7 +333,8 @@ describe("HomieHaDiscoveryNode runtime", () => {
     });
 
     expect(error).toBeUndefined();
-    const output = node.sent.at(-1) as unknown[];
+    node.emitClose();
+    const output = getLatestOutput(node);
     expect(output[Output.Discovery]).toEqual([
       expect.objectContaining({
         topic: "homeassistant/device/acme_kitchen/config",
@@ -350,6 +358,54 @@ describe("HomieHaDiscoveryNode runtime", () => {
     const discoveryPayload = (output[Output.Discovery] as Array<{ payload: unknown }>)[0]
       ?.payload as { components: Record<string, unknown> };
     expect(discoveryPayload.components).not.toHaveProperty("acme_kitchen_spare_state");
+  });
+
+  it("coalesces retained discovery bursts before publishing to Node-RED outputs", () => {
+    const node = new FakeNode();
+    new HomieHaDiscoveryNode(node as never, baseConfig);
+
+    node.emitInput({
+      topic: "homie/5/kitchen/$description",
+      payload: buildDescription(),
+      retain: true,
+    });
+    node.emitInput({
+      topic: "homie/5/kitchen/$mac",
+      payload: "AA:BB:CC:DD:EE:FF",
+      retain: true,
+    });
+    node.emitInput({
+      topic: "homie/5/kitchen/$fw/version",
+      payload: "1.2.3",
+      retain: true,
+    });
+    node.emitInput({
+      topic: "homie/5/kitchen/$implementation/ota/enabled",
+      payload: "true",
+      retain: true,
+    });
+
+    expect(
+      node.sent.flatMap((output) => ((output as unknown[])[Output.Discovery] ?? []) as unknown[]),
+    ).toHaveLength(0);
+
+    node.emitClose();
+    const discoveryOutput = getLatestOutput(node);
+    const discoveryMessages = discoveryOutput[Output.Discovery] as Array<{ payload: unknown }>;
+    expect(discoveryMessages).toHaveLength(2);
+    expect(discoveryMessages[0]?.payload).toEqual(
+      expect.objectContaining({
+        device: expect.objectContaining({
+          connections: [["mac", "AA:BB:CC:DD:EE:FF"]],
+          sw_version: "1.2.3",
+        }),
+        components: expect.objectContaining({
+          homie_homie_5_kitchen_ota_enabled: expect.objectContaining({
+            platform: "binary_sensor",
+          }),
+        }),
+      }),
+    );
   });
 
   it("emits diagnostics for invalid input payloads", () => {

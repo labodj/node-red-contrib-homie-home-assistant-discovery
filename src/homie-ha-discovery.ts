@@ -19,11 +19,41 @@ interface OutputMessages {
   [Output.Debug]?: NodeMessage | NodeMessage[];
 }
 
+const DISCOVERY_FLUSH_DELAY_MS = 250;
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isRemovalTransition = (message: DiscoveryMessage): boolean => {
+  if (!isObjectRecord(message.payload)) {
+    return false;
+  }
+
+  const components = message.payload.components;
+  if (!isObjectRecord(components)) {
+    return false;
+  }
+
+  return Object.values(components).some((component) => {
+    if (!isObjectRecord(component)) {
+      return false;
+    }
+
+    const keys = Object.keys(component);
+    return keys.length === 1 && keys[0] === "platform";
+  });
+};
+
+const canCoalesceDiscoveryMessage = (message: DiscoveryMessage): boolean =>
+  message.payload !== "" && !isRemovalTransition(message);
+
 export class HomieHaDiscoveryNode {
   private readonly node: Node;
   private readonly config: HomieHaDiscoveryNodeDef;
   private readonly bridge: HomieHaDiscoveryBridge;
   private initialSubscriptionHandle: NodeJS.Immediate | null = null;
+  private discoveryFlushHandle: NodeJS.Timeout | null = null;
+  private readonly pendingDiscoveryMessages: DiscoveryMessage[] = [];
   private discoveryCount = 0;
 
   public constructor(node: Node, config: HomieHaDiscoveryNodeDef) {
@@ -71,6 +101,7 @@ export class HomieHaDiscoveryNode {
         clearImmediate(this.initialSubscriptionHandle);
         this.initialSubscriptionHandle = null;
       }
+      this.flushDiscoveryMessages();
       done();
     });
   }
@@ -135,9 +166,7 @@ export class HomieHaDiscoveryNode {
 
     const output: OutputMessages = {};
     if (result.messages.length > 0) {
-      this.discoveryCount += result.messages.length;
-      output[Output.Discovery] = result.messages.map((message) => this.toNodeMessage(message));
-      this.updateStatus(`published ${this.discoveryCount}`);
+      this.queueDiscoveryMessages(result.messages);
     }
 
     if (result.warnings.length > 0 || result.logs.length > 0) {
@@ -151,6 +180,64 @@ export class HomieHaDiscoveryNode {
 
     output[Output.Debug] = msg;
     this.send(output);
+  }
+
+  private queueDiscoveryMessages(messages: DiscoveryMessage[]): void {
+    for (const message of messages) {
+      if (!canCoalesceDiscoveryMessage(message)) {
+        this.pendingDiscoveryMessages.push(message);
+        continue;
+      }
+
+      const existingIndex = this.findPendingCoalescibleMessageIndex(message.topic);
+      if (existingIndex >= 0) {
+        this.pendingDiscoveryMessages[existingIndex] = message;
+      } else {
+        this.pendingDiscoveryMessages.push(message);
+      }
+    }
+
+    this.scheduleDiscoveryFlush();
+  }
+
+  private findPendingCoalescibleMessageIndex(topic: string): number {
+    for (let index = this.pendingDiscoveryMessages.length - 1; index >= 0; index--) {
+      const pending = this.pendingDiscoveryMessages[index];
+      if (pending && pending.topic === topic && canCoalesceDiscoveryMessage(pending)) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  private scheduleDiscoveryFlush(): void {
+    if (this.discoveryFlushHandle) {
+      clearTimeout(this.discoveryFlushHandle);
+    }
+
+    this.discoveryFlushHandle = setTimeout(() => {
+      this.discoveryFlushHandle = null;
+      this.flushDiscoveryMessages();
+    }, DISCOVERY_FLUSH_DELAY_MS);
+  }
+
+  private flushDiscoveryMessages(): void {
+    if (this.discoveryFlushHandle) {
+      clearTimeout(this.discoveryFlushHandle);
+      this.discoveryFlushHandle = null;
+    }
+
+    if (this.pendingDiscoveryMessages.length === 0) {
+      return;
+    }
+
+    const messages = this.pendingDiscoveryMessages.splice(0);
+    this.discoveryCount += messages.length;
+    this.send({
+      [Output.Discovery]: messages.map((message) => this.toNodeMessage(message)),
+    });
+    this.updateStatus(`published ${this.discoveryCount}`);
   }
 
   private normalizePayload(payload: unknown): string | Buffer | Uint8Array | undefined {
