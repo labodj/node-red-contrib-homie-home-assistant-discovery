@@ -30,6 +30,53 @@
       $("#node-input-version-warning").toggle(!hasVersion);
     }
 
+    const OVERRIDES_EDITOR_HEIGHT = 260;
+
+    function destroyOverridesEditor(node) {
+      if (node._homieHaOverridesEditor) {
+        node._homieHaOverridesEditor.destroy();
+        delete node._homieHaOverridesEditor;
+      }
+    }
+
+    function lockOverridesEditorContainerHeight(container) {
+      if (!container) {
+        return;
+      }
+
+      container.style.height = `${OVERRIDES_EDITOR_HEIGHT}px`;
+      container.style.maxHeight = `${OVERRIDES_EDITOR_HEIGHT}px`;
+      container.style.overflow = "hidden";
+    }
+
+    function resizeOverridesEditor(node) {
+      const editor = node._homieHaOverridesEditor;
+      const container = document.getElementById("node-input-overridesJson-editor");
+      if (!editor || !container) {
+        return;
+      }
+
+      lockOverridesEditorContainerHeight(container);
+      const width = Math.floor(container.clientWidth);
+      const height = Math.floor(container.clientHeight || OVERRIDES_EDITOR_HEIGHT);
+      if (width > 0 && height > 0 && typeof editor.layout === "function") {
+        editor.layout({ width, height });
+        return;
+      }
+      if (typeof editor.resize === "function") {
+        editor.resize(true);
+      }
+    }
+
+    function scheduleOverridesEditorResize(node) {
+      const resize = () => resizeOverridesEditor(node);
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(resize);
+      }
+      setTimeout(resize, 0);
+      setTimeout(resize, 50);
+    }
+
     RED.nodes.registerType("homie-ha-discovery", {
       category: "home automation",
       color: "#d8bfd8",
@@ -62,11 +109,115 @@
         return this.name || "homie-ha-discovery";
       },
       oneditprepare: function () {
+        const node = this;
+
+        const getOverridesText = () =>
+          node._homieHaOverridesEditor
+            ? node._homieHaOverridesEditor.getValue()
+            : String($("#node-input-overridesJson").val() || "");
+
+        const renderOverridesValidation = () => {
+          const text = getOverridesText().trim();
+          const $message = $("#node-input-overridesValidation");
+          if (!text) {
+            $message
+              .removeClass("homie-ha-validation-error")
+              .addClass("homie-ha-validation-ok")
+              .text("Overrides JSON is optional.");
+            return;
+          }
+
+          try {
+            JSON.parse(text);
+            $message
+              .removeClass("homie-ha-validation-error")
+              .addClass("homie-ha-validation-ok")
+              .text("Valid JSON.");
+          } catch (error) {
+            $message
+              .removeClass("homie-ha-validation-ok")
+              .addClass("homie-ha-validation-error")
+              .text(error instanceof Error ? error.message : String(error));
+          }
+        };
+
+        const setOverridesText = (value) => {
+          const text = String(value || "");
+          if (node._homieHaOverridesEditor) {
+            node._homieHaOverridesEditor.setValue(text, -1);
+          }
+          $("#node-input-overridesJson").val(text).trigger("change");
+          renderOverridesValidation();
+        };
+
+        const configureOverridesEditor = (editor) => {
+          if (editor.setOptions) {
+            editor.setOptions({
+              enableBasicAutocompletion: true,
+              enableLiveAutocompletion: true,
+            });
+          }
+
+          if (editor.getSession) {
+            editor.getSession().on("change", () => {
+              $("#node-input-overridesJson").val(editor.getValue()).trigger("change");
+              renderOverridesValidation();
+            });
+          }
+        };
+
         $("#node-input-enableV3,#node-input-enableV4,#node-input-enableV5").on(
           "change",
           updateVersionWarning,
         );
+        $("details.homie-ha-config-section").on("toggle", () => {
+          scheduleOverridesEditorResize(node);
+        });
+        $("#node-input-formatOverrides").on("click", () => {
+          const text = getOverridesText().trim();
+          if (!text) {
+            renderOverridesValidation();
+            return;
+          }
+
+          try {
+            setOverridesText(JSON.stringify(JSON.parse(text), null, 2));
+          } catch {
+            renderOverridesValidation();
+          }
+        });
+
+        $("#node-input-overridesJson").hide();
+        if (RED.editor?.createEditor) {
+          lockOverridesEditorContainerHeight(
+            document.getElementById("node-input-overridesJson-editor"),
+          );
+          node._homieHaOverridesEditor = RED.editor.createEditor({
+            id: "node-input-overridesJson-editor",
+            mode: "ace/mode/json",
+            value: String($("#node-input-overridesJson").val() || ""),
+          });
+          configureOverridesEditor(node._homieHaOverridesEditor);
+          scheduleOverridesEditorResize(node);
+        } else {
+          $("#node-input-overridesJson").show();
+          $("#node-input-overridesJson").on("change keyup", renderOverridesValidation);
+        }
+
         updateVersionWarning();
+        renderOverridesValidation();
+      },
+      oneditsave: function () {
+        if (this._homieHaOverridesEditor) {
+          $("#node-input-overridesJson").val(this._homieHaOverridesEditor.getValue());
+        }
+        destroyOverridesEditor(this);
+      },
+      oneditcancel: function () {
+        destroyOverridesEditor(this);
+      },
+      oneditresize: function () {
+        scheduleOverridesEditorResize(this);
       },
     });
   })();
@@ -74,46 +225,135 @@
 
 <script type="text/html" data-template-name="homie-ha-discovery">
   <style>
-    .homie-ha-group {
-      margin: 10px 0;
-      border-top: 1px solid var(--red-ui-secondary-border-color, #ddd);
+    .homie-ha-config-section {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-top: 20px;
     }
 
-    .homie-ha-group summary {
+    .homie-ha-config-section-title {
       cursor: pointer;
-      padding: 10px 0 6px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      color: #333;
+      list-style: none;
     }
 
-    .homie-ha-group[open] summary {
-      margin-bottom: 4px;
+    .homie-ha-config-section-title::-webkit-details-marker {
+      display: none;
     }
 
-    .homie-ha-inline-options label {
+    .homie-ha-config-section-title::after {
+      content: "\f107";
+      font-family: FontAwesome;
+      margin-left: auto;
+      color: #999;
+    }
+
+    .homie-ha-config-section:not([open]) .homie-ha-config-section-title {
+      margin-bottom: 0;
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .homie-ha-config-section:not([open]) .homie-ha-config-section-title::after {
+      transform: rotate(-90deg);
+    }
+
+    .homie-ha-config-section-title i {
+      margin-right: 10px;
+      color: #999;
+    }
+
+    .homie-ha-form-tip {
+      display: block;
+      box-sizing: border-box;
+      margin-top: 5px;
+      margin-left: 110px;
+      max-width: calc(100% - 110px);
+      color: #666;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .homie-ha-editor-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-left: 110px;
+      margin-bottom: 8px;
+    }
+
+    .homie-ha-inline-options label:not(:first-child) {
       width: auto;
       margin-right: 12px;
     }
 
     .homie-ha-overrides {
-      width: 70%;
-      min-height: 160px;
-      font-family: monospace;
+      box-sizing: border-box;
+      width: calc(100% - 110px);
+      height: 260px;
+      min-height: 260px;
+      max-height: 260px;
+      font-family: var(--red-ui-monospace-font, monospace);
+    }
+
+    .homie-ha-overrides-editor {
+      box-sizing: border-box;
+      width: calc(100% - 110px);
+      height: 260px;
+      min-height: 260px;
+      max-height: 260px;
+      overflow: hidden;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
 
     .homie-ha-wide-field {
-      width: 70%;
+      width: calc(100% - 110px);
+      max-width: 500px;
     }
 
     .homie-ha-warning {
       display: none;
-      width: 70%;
+      box-sizing: border-box;
       margin-left: 105px;
+      max-width: calc(100% - 105px);
       color: var(--red-ui-text-color-error, #ad1625);
+    }
+
+    .homie-ha-validation-message {
+      display: block;
+      box-sizing: border-box;
+      margin: 6px 0 0 110px;
+      max-width: calc(100% - 110px);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .homie-ha-validation-ok {
+      color: #267326;
+    }
+
+    .homie-ha-validation-error {
+      color: #b00020;
     }
   </style>
 
-  <details class="homie-ha-group" open>
-    <summary>Basic setup</summary>
+  <details class="homie-ha-config-section" open>
+    <summary class="homie-ha-config-section-title">
+      <i class="fa fa-sitemap"></i> Basic setup
+    </summary>
 
     <div class="form-row">
       <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -154,8 +394,10 @@
     </div>
   </details>
 
-  <details class="homie-ha-group">
-    <summary>Home Assistant identity</summary>
+  <details class="homie-ha-config-section">
+    <summary class="homie-ha-config-section-title">
+      <i class="fa fa-id-badge"></i> Home Assistant identity
+    </summary>
 
     <div class="form-row">
       <label for="node-input-idPrefix"><i class="fa fa-id-badge"></i> ID prefix</label>
@@ -185,8 +427,10 @@
     </div>
   </details>
 
-  <details class="homie-ha-group">
-    <summary>Entity mapping</summary>
+  <details class="homie-ha-config-section">
+    <summary class="homie-ha-config-section-title">
+      <i class="fa fa-sliders"></i> Entity mapping
+    </summary>
 
     <div class="form-row">
       <label for="node-input-defaultCommandableBooleanPlatform">
@@ -198,21 +442,36 @@
         <option value="light">Light</option>
         <option value="fan">Fan</option>
       </select>
-    </div>
-    <div class="form-tips">
-      Used only for Homie <code>boolean</code> properties with <code>settable=true</code> when no
-      mapping rule or exact property override applies. Non-settable booleans are always discovered
-      as <code>binary_sensor</code>.
+      <span class="homie-ha-form-tip">
+        Used only for Homie <code>boolean</code> properties with <code>settable=true</code> when no
+        mapping rule or exact property override applies. Non-settable booleans are always discovered
+        as <code>binary_sensor</code>.
+      </span>
     </div>
 
     <div class="form-row">
       <label for="node-input-overridesJson"><i class="fa fa-code"></i> Overrides</label>
+      <div class="homie-ha-editor-toolbar">
+        <button type="button" class="red-ui-button" id="node-input-formatOverrides">
+          Format JSON
+        </button>
+      </div>
       <textarea
         id="node-input-overridesJson"
         class="homie-ha-overrides"
-        rows="8"
+        rows="12"
         placeholder='{"devices":{"homie/5/kitchen-board":{"name":"Kitchen board"}}}'
       ></textarea>
+      <div id="node-input-overridesJson-editor" class="homie-ha-overrides-editor"></div>
+      <span
+        id="node-input-overridesValidation"
+        class="homie-ha-validation-message"
+        aria-live="polite"
+      ></span>
+      <span class="homie-ha-form-tip">
+        Strict JSON used to override generated Home Assistant entity names, platforms and discovery
+        fields.
+      </span>
     </div>
   </details>
 </script>

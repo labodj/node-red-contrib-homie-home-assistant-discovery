@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-homie-home-assistant-discovery",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Node-RED node that publishes Home Assistant MQTT discovery from Homie MQTT metadata.",
   "main": "dist/homie-ha-discovery.js",
   "scripts": {
