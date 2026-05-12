@@ -133,6 +133,15 @@ describe("node config helpers", () => {
     ).toBe("auto");
   });
 
+  it("rejects invalid settable boolean mapping modes", () => {
+    expect(() =>
+      normalizeNodeConfig({
+        ...baseConfig,
+        defaultCommandableBooleanPlatform: "sensor" as "auto",
+      }),
+    ).toThrow("Default Commandable Boolean Platform must be auto, switch, light or fan");
+  });
+
   it("honors enabled Homie versions", () => {
     const config = normalizeNodeConfig({
       ...baseConfig,

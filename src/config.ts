@@ -29,6 +29,18 @@ const normalizeTopicPrefix = (value: string, fieldName: string): string => {
   return normalized;
 };
 
+const normalizeCommandableBooleanPlatform = (
+  value: unknown,
+): HomieHaDiscoveryNodeDef["defaultCommandableBooleanPlatform"] => {
+  if (value === undefined || value === null || value === "") {
+    return "auto";
+  }
+  if (value === "auto" || value === "switch" || value === "light" || value === "fan") {
+    return value;
+  }
+  throw new Error("Default Commandable Boolean Platform must be auto, switch, light or fan.");
+};
+
 const topicPrefixCovers = (coveringPrefix: string, coveredPrefix: string): boolean =>
   coveredPrefix === coveringPrefix || coveredPrefix.startsWith(`${coveringPrefix}/`);
 
@@ -46,7 +58,9 @@ export const normalizeNodeConfig = (config: HomieHaDiscoveryNodeDef): HomieHaDis
     emitSubscriptions: config.emitSubscriptions !== false,
     includeStateSensor: config.includeStateSensor !== false,
     includeAttributeDiagnostics: config.includeAttributeDiagnostics !== false,
-    defaultCommandableBooleanPlatform: config.defaultCommandableBooleanPlatform ?? "auto",
+    defaultCommandableBooleanPlatform: normalizeCommandableBooleanPlatform(
+      config.defaultCommandableBooleanPlatform,
+    ),
     manufacturer: normalizeRequiredString(config.manufacturer || "Homie", "Manufacturer"),
     model: normalizeRequiredString(config.model || "Homie MQTT Device", "Model"),
     overridesJson: config.overridesJson?.trim() ?? "",
