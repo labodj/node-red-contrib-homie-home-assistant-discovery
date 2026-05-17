@@ -79,7 +79,7 @@
 
     RED.nodes.registerType("homie-ha-discovery", {
       category: "home automation",
-      color: "#d8bfd8",
+      color: "#4a90e2",
       defaults: {
         name: { value: "" },
         discoveryPrefix: {
@@ -106,7 +106,7 @@
       outputLabels: ["discovery", "diagnostics", "debug", "subscriptions"],
       icon: "font-awesome/fa-sitemap",
       label: function () {
-        return this.name || "homie-ha-discovery";
+        return this.name || "Homie HA Discovery";
       },
       oneditprepare: function () {
         const node = this;
@@ -187,8 +187,12 @@
           }
         });
 
-        $("#node-input-overridesJson").hide();
+        const $overridesTextarea = $("#node-input-overridesJson");
+        const $overridesEditorContainer = $("#node-input-overridesJson-editor");
+        $overridesTextarea.hide();
+        $overridesEditorContainer.hide();
         if (RED.editor?.createEditor) {
+          $overridesEditorContainer.show();
           lockOverridesEditorContainerHeight(
             document.getElementById("node-input-overridesJson-editor"),
           );
@@ -200,8 +204,8 @@
           configureOverridesEditor(node._homieHaOverridesEditor);
           scheduleOverridesEditorResize(node);
         } else {
-          $("#node-input-overridesJson").show();
-          $("#node-input-overridesJson").on("change keyup", renderOverridesValidation);
+          $overridesTextarea.show();
+          $overridesTextarea.on("change keyup", renderOverridesValidation);
         }
 
         updateVersionWarning();
@@ -308,6 +312,7 @@
     }
 
     .homie-ha-overrides-editor {
+      display: none;
       box-sizing: border-box;
       width: calc(100% - 110px);
       height: 260px;
