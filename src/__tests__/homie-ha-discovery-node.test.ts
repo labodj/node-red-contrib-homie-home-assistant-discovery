@@ -111,8 +111,7 @@ describe("HomieHaDiscoveryNode runtime", () => {
   it("registers with Node-RED and reports invalid editor configuration", () => {
     const registerNode: (red: unknown) => void = jest.requireActual("../homie-ha-discovery");
     let registeredConstructor:
-      | ((this: FakeNode, config: HomieHaDiscoveryNodeDef) => void)
-      | undefined;
+      ((this: FakeNode, config: HomieHaDiscoveryNodeDef) => void) | undefined;
     const red = {
       nodes: {
         createNode: jest.fn(),
