@@ -16,6 +16,10 @@ export interface HomieHaDiscoveryNodeDef extends NodeDef {
   manufacturer: string;
   model: string;
   overridesJson: string;
+  availabilityTopic?: string;
+  availabilityTemplate?: string;
+  availabilityPayloadAvailable?: string;
+  availabilityPayloadNotAvailable?: string;
 }
 
 export enum Output {

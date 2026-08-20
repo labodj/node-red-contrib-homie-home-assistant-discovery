@@ -407,6 +407,54 @@ describe("HomieHaDiscoveryNode runtime", () => {
     );
   });
 
+  it("keeps component removal transitions before their replacement configuration", () => {
+    const node = new FakeNode();
+    new HomieHaDiscoveryNode(node as never, baseConfig);
+
+    node.emitInput({
+      topic: "homie/5/kitchen/$description",
+      payload: buildDescription(),
+      retain: true,
+    });
+    node.emitInput({
+      topic: "homie/5/kitchen/$description",
+      payload: JSON.stringify({
+        homie: "5.0",
+        version: 2,
+        name: "Kitchen",
+        nodes: {
+          relay: {
+            properties: { state: { datatype: "boolean", settable: false } },
+          },
+        },
+      }),
+      retain: true,
+    });
+    node.emitClose();
+
+    const output = getLatestOutput(node);
+    const deviceMessages = (
+      output[Output.Discovery] as Array<{
+        topic: string;
+        payload: { components: Record<string, unknown> };
+      }>
+    ).filter((message) => message.topic === "homeassistant/device/homie_homie_5_kitchen/config");
+
+    expect(deviceMessages.at(-2)?.payload.components).toEqual(
+      expect.objectContaining({
+        homie_homie_5_kitchen_relay_state: { platform: "switch" },
+      }),
+    );
+    expect(deviceMessages.at(-1)?.payload.components).toEqual(
+      expect.objectContaining({
+        homie_homie_5_kitchen_relay_state: expect.objectContaining({
+          platform: "binary_sensor",
+          unique_id: "homie_homie_5_kitchen_relay_state",
+        }),
+      }),
+    );
+  });
+
   it("emits diagnostics for invalid input payloads", () => {
     const node = new FakeNode();
     new HomieHaDiscoveryNode(node as never, baseConfig);
@@ -448,6 +496,43 @@ describe("HomieHaDiscoveryNode runtime", () => {
     expect(output[Output.Debug]).toEqual(
       expect.objectContaining({
         topic: "homie/5/kitchen/$description",
+      }),
+    );
+  });
+
+  it("forwards custom availability settings to generated discovery payload", () => {
+    const node = new FakeNode();
+    new HomieHaDiscoveryNode(node as never, {
+      ...baseConfig,
+      availabilityTopic: "{baseTopic}/status",
+      availabilityTemplate: "{{ 'active' if value == 'ready' else 'inactive' }}",
+      availabilityPayloadAvailable: "active",
+      availabilityPayloadNotAvailable: "inactive",
+    });
+
+    node.emitInput({
+      topic: "homie/5/kitchen/$description",
+      payload: buildDescription(),
+      retain: true,
+    });
+    node.emitClose();
+
+    const discoveryOutput = getLatestOutput(node);
+    const discoveryMessages = discoveryOutput[Output.Discovery] as Array<{
+      payload: {
+        availability_topic?: string;
+        availability_template?: string;
+        payload_available?: string;
+        payload_not_available?: string;
+      };
+    }>;
+    const deviceMessage = discoveryMessages?.at(0);
+    expect(deviceMessage?.payload).toEqual(
+      expect.objectContaining({
+        availability_topic: "homie/5/kitchen/status",
+        availability_template: "{{ 'active' if value == 'ready' else 'inactive' }}",
+        payload_available: "active",
+        payload_not_available: "inactive",
       }),
     );
   });

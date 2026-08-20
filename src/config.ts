@@ -41,6 +41,17 @@ const normalizeCommandableBooleanPlatform = (
   throw new Error("Default Commandable Boolean Platform must be auto, switch, light or fan.");
 };
 
+const normalizeOptionalString = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return undefined;
+  }
+  return normalized;
+};
+
 const topicPrefixCovers = (coveringPrefix: string, coveredPrefix: string): boolean =>
   coveredPrefix === coveringPrefix || coveredPrefix.startsWith(`${coveringPrefix}/`);
 
@@ -64,6 +75,12 @@ export const normalizeNodeConfig = (config: HomieHaDiscoveryNodeDef): HomieHaDis
     manufacturer: normalizeRequiredString(config.manufacturer || "Homie", "Manufacturer"),
     model: normalizeRequiredString(config.model || "Homie MQTT Device", "Model"),
     overridesJson: config.overridesJson?.trim() ?? "",
+    availabilityTopic: normalizeOptionalString(config.availabilityTopic),
+    availabilityTemplate: normalizeOptionalString(config.availabilityTemplate),
+    availabilityPayloadAvailable: normalizeOptionalString(config.availabilityPayloadAvailable),
+    availabilityPayloadNotAvailable: normalizeOptionalString(
+      config.availabilityPayloadNotAvailable,
+    ),
   };
 
   if (!normalized.enableV3 && !normalized.enableV4 && !normalized.enableV5) {

@@ -100,6 +100,10 @@
         manufacturer: { value: "Homie", required: true, validate: validateRequiredTrimmed },
         model: { value: "Homie MQTT Device", required: true, validate: validateRequiredTrimmed },
         overridesJson: { value: "", validate: validateOverridesJson },
+        availabilityTopic: { value: "" },
+        availabilityTemplate: { value: "" },
+        availabilityPayloadAvailable: { value: "" },
+        availabilityPayloadNotAvailable: { value: "" },
       },
       inputs: 1,
       outputs: 4,
@@ -289,6 +293,12 @@
       word-break: break-word;
     }
 
+    .homie-ha-form-tip code {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
     .homie-ha-editor-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -304,7 +314,7 @@
 
     .homie-ha-overrides {
       box-sizing: border-box;
-      width: calc(100% - 110px);
+      width: 100%;
       height: 260px;
       min-height: 260px;
       max-height: 260px;
@@ -314,7 +324,7 @@
     .homie-ha-overrides-editor {
       display: none;
       box-sizing: border-box;
-      width: calc(100% - 110px);
+      width: 100%;
       height: 260px;
       min-height: 260px;
       max-height: 260px;
@@ -325,7 +335,6 @@
 
     .homie-ha-wide-field {
       width: calc(100% - 110px);
-      max-width: 500px;
     }
 
     .homie-ha-warning {
@@ -467,7 +476,10 @@
         rows="12"
         placeholder='{"devices":{"homie/5/kitchen-board":{"name":"Kitchen board"}}}'
       ></textarea>
-      <div id="node-input-overridesJson-editor" class="homie-ha-overrides-editor"></div>
+      <div
+        id="node-input-overridesJson-editor"
+        class="node-text-editor homie-ha-overrides-editor"
+      ></div>
       <span
         id="node-input-overridesValidation"
         class="homie-ha-validation-message"
@@ -476,6 +488,68 @@
       <span class="homie-ha-form-tip">
         Strict JSON used to override generated Home Assistant entity names, platforms and discovery
         fields.
+      </span>
+    </div>
+  </details>
+
+  <details class="homie-ha-config-section">
+    <summary class="homie-ha-config-section-title">
+      <i class="fa fa-signal"></i> Availability
+    </summary>
+    <div class="form-row">
+      <label for="node-input-availabilityTopic"><i class="fa fa-broadcast-tower"></i> Topic</label>
+      <input
+        type="text"
+        id="node-input-availabilityTopic"
+        class="homie-ha-wide-field"
+        placeholder="{baseTopic}/$state"
+      />
+      <span class="homie-ha-form-tip">
+        Optional Home Assistant availability topic template. Leave empty to use
+        <code>{baseTopic}/$state</code>.
+      </span>
+    </div>
+    <div class="form-row">
+      <label for="node-input-availabilityTemplate">
+        <i class="fa fa-commenting-o"></i> Template
+      </label>
+      <input
+        type="text"
+        id="node-input-availabilityTemplate"
+        class="homie-ha-wide-field"
+        placeholder="{{ 'online' if value == 'ready' else 'offline' }}"
+      />
+      <span class="homie-ha-form-tip">
+        Optional MQTT availability template. Leave empty to use
+        <code>{{ 'online' if value == 'ready' else 'offline' }}</code>.
+      </span>
+    </div>
+    <div class="form-row">
+      <label for="node-input-availabilityPayloadAvailable">
+        <i class="fa fa-check-circle-o"></i> Payload available
+      </label>
+      <input
+        type="text"
+        id="node-input-availabilityPayloadAvailable"
+        class="homie-ha-wide-field"
+        placeholder="online"
+      />
+      <span class="homie-ha-form-tip">
+        Optional payload sent by device when available. Leave empty for <code>online</code>.
+      </span>
+    </div>
+    <div class="form-row">
+      <label for="node-input-availabilityPayloadNotAvailable">
+        <i class="fa fa-times-circle-o"></i> Payload unavailable
+      </label>
+      <input
+        type="text"
+        id="node-input-availabilityPayloadNotAvailable"
+        class="homie-ha-wide-field"
+        placeholder="offline"
+      />
+      <span class="homie-ha-form-tip">
+        Optional payload sent by device when unavailable. Leave empty for <code>offline</code>.
       </span>
     </div>
   </details>

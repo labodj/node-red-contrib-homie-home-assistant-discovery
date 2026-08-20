@@ -96,20 +96,24 @@ disabled it uses narrower `$description` and `$state` filters.
 
 ## Editor Configuration
 
-| Field                 | Default             | Meaning                                               |
-| --------------------- | ------------------- | ----------------------------------------------------- |
-| Home Assistant prefix | `homeassistant`     | Home Assistant MQTT discovery prefix.                 |
-| ID prefix             | `homie`             | Prefix for generated discovery IDs and entity IDs.    |
-| Homie v5              | `homie`             | Homie v5 topic domain.                                |
-| Homie v3/v4           | `homie`             | Homie legacy topic root.                              |
-| Versions              | all enabled         | Homie versions to process.                            |
-| Boolean mapping       | `auto`              | Boolean fallback: `auto`, `switch`, `light`, `fan`.   |
-| Manufacturer          | `Homie`             | Default Home Assistant manufacturer.                  |
-| Model                 | `Homie MQTT Device` | Default Home Assistant model.                         |
-| emit subscriptions    | enabled             | Emit Node-RED MQTT subscription messages.             |
-| state sensor          | enabled             | Publish diagnostic Homie State sensor.                |
-| attribute diagnostics | enabled             | Publish observed v5 `$...` attributes as diagnostics. |
-| Overrides             | empty               | JSON discovery override configuration.                |
+| Field                 | Default                                     | Meaning                                               |
+| --------------------- | ------------------------------------------- | ----------------------------------------------------- |
+| Home Assistant prefix | `homeassistant`                             | Home Assistant MQTT discovery prefix.                 |
+| ID prefix             | `homie`                                     | Prefix for generated discovery IDs and entity IDs.    |
+| Homie v5              | `homie`                                     | Homie v5 topic domain.                                |
+| Homie v3/v4           | `homie`                                     | Homie legacy topic root.                              |
+| Versions              | all enabled                                 | Homie versions to process.                            |
+| Boolean mapping       | `auto`                                      | Boolean fallback: `auto`, `switch`, `light`, `fan`.   |
+| Manufacturer          | `Homie`                                     | Default Home Assistant manufacturer.                  |
+| Model                 | `Homie MQTT Device`                         | Default Home Assistant model.                         |
+| emit subscriptions    | enabled                                     | Emit Node-RED MQTT subscription messages.             |
+| state sensor          | enabled                                     | Publish diagnostic Homie State sensor.                |
+| attribute diagnostics | enabled                                     | Publish observed v5 `$...` attributes as diagnostics. |
+| Availability topic    | `{baseTopic}/$state`                        | Topic template used for device availability.          |
+| Availability template | online for Homie `ready`, otherwise offline | Home Assistant value template for availability.       |
+| Available payload     | `online`                                    | Result interpreted as available.                      |
+| Unavailable payload   | `offline`                                   | Result interpreted as unavailable.                    |
+| Overrides             | empty                                       | JSON discovery override configuration.                |
 
 At least one Homie version must remain enabled. Invalid JSON in the overrides
 field is rejected in the editor and again by the runtime constructor.
@@ -276,7 +280,9 @@ matching. For example:
 - `$stats/uptime` matches `diagnostics/stats-uptime`.
 
 Core operational v5 attributes such as `$state`, `$description`, `$log` and
-`$alert` are not emitted as diagnostic entities.
+`$alert` are not emitted as diagnostic entities. Command topics such as
+`$implementation/reset`, `$implementation/ota/firmware/<checksum>` and `*/set`
+are excluded as well.
 
 ## Additional Home Assistant Fields
 
@@ -302,6 +308,18 @@ Warnings are emitted when input cannot be used for discovery, for example:
 
 The node status shows readiness and the number of discovery messages published
 through output 1.
+
+## Discovery Updates and Cleanup
+
+When a component disappears or changes platform, Home Assistant requires a
+removal transition before the final current device configuration. The node
+briefly coalesces discovery bursts but preserves that order.
+
+Previous component IDs are remembered only in RAM. A Node-RED restart or full
+redeploy loses that history, so entities created by an older configuration or
+release cannot be identified automatically. Existing checksum-based OTA
+entities therefore need a one-time manual broker or Home Assistant cleanup;
+future OTA command topics are ignored by discovery.
 
 ## Local Package Verification
 

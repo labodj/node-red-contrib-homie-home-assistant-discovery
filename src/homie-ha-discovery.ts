@@ -69,6 +69,7 @@ export class HomieHaDiscoveryNode {
       includeStateSensor: this.config.includeStateSensor,
       includeAttributeDiagnostics: this.config.includeAttributeDiagnostics,
       defaultCommandableBooleanPlatform: this.config.defaultCommandableBooleanPlatform,
+      availability: this.getAvailabilityOptions(),
       manufacturer: this.config.manufacturer,
       model: this.config.model,
       overrides,
@@ -130,6 +131,32 @@ export class HomieHaDiscoveryNode {
     if (this.config.enableV4) versions.push(4);
     if (this.config.enableV5) versions.push(5);
     return versions;
+  }
+
+  private getAvailabilityOptions():
+    | {
+        topic?: string;
+        template?: string;
+        payloadAvailable?: string;
+        payloadNotAvailable?: string;
+      }
+    | undefined {
+    const hasAvailabilityOverrides = [
+      this.config.availabilityTopic,
+      this.config.availabilityTemplate,
+      this.config.availabilityPayloadAvailable,
+      this.config.availabilityPayloadNotAvailable,
+    ].some((value) => value !== undefined);
+    if (!hasAvailabilityOverrides) {
+      return undefined;
+    }
+
+    return {
+      topic: this.config.availabilityTopic,
+      template: this.config.availabilityTemplate,
+      payloadAvailable: this.config.availabilityPayloadAvailable,
+      payloadNotAvailable: this.config.availabilityPayloadNotAvailable,
+    };
   }
 
   private handleInput(msg: NodeMessage): void {
@@ -203,9 +230,13 @@ export class HomieHaDiscoveryNode {
   private findPendingCoalescibleMessageIndex(topic: string): number {
     for (let index = this.pendingDiscoveryMessages.length - 1; index >= 0; index--) {
       const pending = this.pendingDiscoveryMessages[index];
-      if (pending && pending.topic === topic && canCoalesceDiscoveryMessage(pending)) {
-        return index;
+      if (pending?.topic !== topic) {
+        continue;
       }
+      if (!canCoalesceDiscoveryMessage(pending)) {
+        return -1;
+      }
+      return index;
     }
 
     return -1;

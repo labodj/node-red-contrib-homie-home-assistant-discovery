@@ -274,4 +274,34 @@ describe("node config helpers", () => {
       ),
     ).toThrow(/supported Home Assistant platform/);
   });
+
+  it("normalizes optional availability overrides", () => {
+    const config = normalizeNodeConfig({
+      ...baseConfig,
+      availabilityTopic: " {baseTopic}/$state ",
+      availabilityTemplate: " {{ 'online' if value == 'ready' else 'offline' }} ",
+      availabilityPayloadAvailable: " ONLINE ",
+      availabilityPayloadNotAvailable: " OFFLINE ",
+    });
+
+    expect(config.availabilityTopic).toBe("{baseTopic}/$state");
+    expect(config.availabilityTemplate).toBe("{{ 'online' if value == 'ready' else 'offline' }}");
+    expect(config.availabilityPayloadAvailable).toBe("ONLINE");
+    expect(config.availabilityPayloadNotAvailable).toBe("OFFLINE");
+  });
+
+  it("omits blank availability overrides", () => {
+    const config = normalizeNodeConfig({
+      ...baseConfig,
+      availabilityTopic: "   ",
+      availabilityTemplate: "",
+      availabilityPayloadAvailable: "",
+      availabilityPayloadNotAvailable: " ",
+    });
+
+    expect(config.availabilityTopic).toBeUndefined();
+    expect(config.availabilityTemplate).toBeUndefined();
+    expect(config.availabilityPayloadAvailable).toBeUndefined();
+    expect(config.availabilityPayloadNotAvailable).toBeUndefined();
+  });
 });
